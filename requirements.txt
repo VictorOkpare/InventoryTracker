@@ -1,0 +1,5 @@
+# Inventory Tracker - Dependencies
+# Compatible with Python 3.12+
+
+# Adaptive Maintenance: Pydantic for optional data validation
+pydantic>=2.0
