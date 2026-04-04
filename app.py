@@ -46,6 +46,18 @@ def print_summary(items: list[dict]) -> None:
     print(f"{'='*55}\n")
 
 
+def display_out_of_stock(items: list[dict]) -> None:
+    """Print items that are out of stock (quantity == 0)."""
+    out_of_stock = [i for i in items if i["quantity"] == 0]
+    if not out_of_stock:
+        print("  All items are in stock.\n")
+        return
+    print(f"  OUT OF STOCK ITEMS:")
+    for item in out_of_stock:
+        print(f"    - {item['item_name']} (${item['price']:.2f})")
+    print()
+
+
 def main() -> None:
     """Run the Inventory Tracker demo application."""
     print("\n  INVENTORY TRACKER APPLICATION  ")
@@ -55,6 +67,7 @@ def main() -> None:
         return
 
     display_inventory(inventory)
+    display_out_of_stock(inventory)
     print_summary(inventory)
 
 
