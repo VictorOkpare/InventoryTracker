@@ -2,10 +2,12 @@
 helpers.py - Utility functions for the Inventory Tracker application.
 
 Provides helper functions to compute statistics on inventory items.
-All functions handle empty input gracefully.
+All functions handle empty input gracefully and use type hints (Python 3.12).
 
 Maintenance History:
     v1.0 - Initial helpers: highest_stock_item, lowest_stock_item, total_stock_value
+    v1.1 - Corrective: guard against negative values in total_stock_value
+    v1.1 - Preventive: added full docstrings, type hints, and inline comments
 """
 
 
