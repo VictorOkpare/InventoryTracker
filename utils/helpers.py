@@ -51,4 +51,9 @@ def total_stock_value(items: list[dict]) -> float:
     """
     if not items:
         return 0.0
-    return sum(i["quantity"] * i["price"] for i in items)
+    # Corrective: skip items with negative quantity or price to avoid bad totals
+    return sum(
+        i["quantity"] * i["price"]
+        for i in items
+        if i["quantity"] >= 0 and i["price"] >= 0
+    )
