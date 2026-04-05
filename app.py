@@ -1,62 +1,113 @@
 """
-app.py - Main entry point for the Inventory Tracker application.
+app.py - FastAPI entry point for the Inventory Tracker application.
 
-Reads from inventory.py and calculates total stock value,
-highest/lowest stock items, and displays a formatted table.
+Exposes RESTful API endpoints for managing inventory items.
+Replaces the original CLI script with a fully accessible web API.
 
-Maintenance History:
-    v1.0 - Initial script
+Lab 4 - Re-engineering & Migration
 """
 
-from data.inventory import inventory
-from utils.helpers import highest_stock_item, lowest_stock_item, total_stock_value
+from fastapi import FastAPI, HTTPException
+from contextlib import asynccontextmanager
+from models import InventoryItem, InventoryItemResponse
+from controllers import (
+    get_all_items,
+    get_item_by_id,
+    add_item,
+    delete_item,
+    get_summary
+)
+from database import init_db
 
 
-def display_inventory(items: list[dict]) -> None:
-    """Print a formatted table of inventory items."""
-    if not items:
-        print("No inventory records available.")
-        return
-
-    print(f"\n{'='*55}")
-    print(f"{'Item':<20} {'Quantity':>10} {'Price':>10} {'Value':>12}")
-    print(f"{'-'*55}")
-    for item in items:
-        value = item["quantity"] * item["price"]
-        print(f"{item['item_name']:<20} {item['quantity']:>10} {item['price']:>10.2f} {value:>12.2f}")
-    print(f"{'='*55}\n")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize the database on application startup."""
+    print("[APP] Starting Inventory Tracker API...")
+    init_db()
+    yield
+    print("[APP] Shutting down.")
 
 
-def print_summary(items: list[dict]) -> None:
-    """Compute and print inventory summary statistics."""
-    if not items:
-        print("No records to summarise.")
-        return
-
-    highest = highest_stock_item(items)
-    lowest  = lowest_stock_item(items)
-    total   = total_stock_value(items)
-
-    print(f"{'='*55}")
-    print(f"  INVENTORY SUMMARY")
-    print(f"{'-'*55}")
-    print(f"  Highest Stock : {highest['item_name']} (qty: {highest['quantity']})")
-    print(f"  Lowest Stock  : {lowest['item_name']}  (qty: {lowest['quantity']})")
-    print(f"  Total Value   : ${total:,.2f}")
-    print(f"{'='*55}\n")
+app = FastAPI(
+    title="Inventory Tracker API",
+    description="A RESTful API for managing inventory items. Lab 4 - Re-engineering & Migration.",
+    version="2.0.0",
+    lifespan=lifespan
+)
 
 
-def main() -> None:
-    """Run the Inventory Tracker demo application."""
-    print("\n  INVENTORY TRACKER APPLICATION  ")
-
-    if not inventory:
-        print("No inventory records found. Exiting.")
-        return
-
-    display_inventory(inventory)
-    print_summary(inventory)
+@app.get("/", tags=["Root"])
+def root():
+    """Health check endpoint."""
+    return {"message": "Inventory Tracker API is running.", "version": "2.0.0"}
 
 
-if __name__ == "__main__":
-    main()
+@app.get("/items", response_model=list[InventoryItemResponse], tags=["Inventory"])
+def list_items():
+    """
+    Retrieve all inventory items from the database.
+
+    Returns:
+        List of all inventory items with computed values.
+    """
+    return get_all_items()
+
+
+@app.get("/items/{item_id}", response_model=InventoryItemResponse, tags=["Inventory"])
+def get_item(item_id: int):
+    """
+    Retrieve a single inventory item by ID.
+
+    Args:
+        item_id: The database ID of the item.
+
+    Returns:
+        The matching inventory item or 404 if not found.
+    """
+    item = get_item_by_id(item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail=f"Item with ID {item_id} not found.")
+    return item
+
+
+@app.post("/items", response_model=InventoryItemResponse, status_code=201, tags=["Inventory"])
+def create_item(item: InventoryItem):
+    """
+    Add a new inventory item to the database.
+
+    Args:
+        item: InventoryItem with item_name, quantity, and price.
+
+    Returns:
+        The newly created item with its assigned ID and computed value.
+    """
+    return add_item(item)
+
+
+@app.delete("/items/{item_id}", tags=["Inventory"])
+def remove_item(item_id: int):
+    """
+    Delete an inventory item by ID.
+
+    Args:
+        item_id: The database ID of the item to delete.
+
+    Returns:
+        Confirmation message or 404 if not found.
+    """
+    success = delete_item(item_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Item with ID {item_id} not found.")
+    return {"message": f"Item {item_id} deleted successfully."}
+
+
+@app.get("/summary", tags=["Statistics"])
+def inventory_summary():
+    """
+    Get inventory summary statistics.
+
+    Returns:
+        Highest stock item, lowest stock item, and total stock value.
+    """
+    return get_summary()

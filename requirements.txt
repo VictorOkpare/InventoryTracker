@@ -2,4 +2,6 @@
 # Compatible with Python 3.12+
 
 # Adaptive Maintenance: Pydantic for optional data validation
-pydantic>=2.0
+fastapi==0.115.0
+uvicorn==0.30.6
+pydantic==2.7.4
